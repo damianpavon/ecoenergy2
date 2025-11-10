@@ -1,0 +1,16 @@
+<h1>Panel de Dispositivos</h1>
+
+<ul>
+{% for d in dispositivos %}
+    <li>
+        {{ d.nombre }} - Consumo: {{ d.consumo }}W
+        {% if d.consumo > d.limite %}
+            ⚠️ Excede el límite ({{ d.limite }}W)
+        {% else %}
+            ✅ Dentro del límite
+        {% endif %}
+    </li>
+{% endfor %}
+</ul>
+
+<p>Total en estado crítico: {{ criticos }}</p>

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Devices{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Devices</h2>
+        {% if user.groups.all.0.name == 'Admin' or user.groups.all.0.name == 'Manager' %}
+        <a href="{% url 'device_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Device
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="search" name="search" value="{{ search_query }}" placeholder="Search devices...">
+                </div>
+                <div class="col-md-3">
+                    <label for="category" class="form-label">Category</label>
+                    <select class="form-select" id="category" name="category">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category.id|stringformat:"s" == selected_category %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="sort" class="form-label">Sort by</label>
+                    <select class="form-select" id="sort" name="sort">
+                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name</option>
+                        <option value="-created_at" {% if sort_by == '-created_at' %}selected{% endif %}>Newest</option>
+                        <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Oldest</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-search"></i> Filter
+                    </button>
+                    <a href="{% url 'export_devices' %}" class="btn btn-outline-success">
+                        <i class="fas fa-download"></i> Export
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Devices List -->
+    <div class="row">
+        {% for device in page_obj %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ device.name }}</h5>
+                    <p class="card-text">
+                        <strong>Category:</strong> {{ device.category.name }}<br>
+                        <strong>Zone:</strong> {{ device.zone.name }}<br>
+                        <strong>Reference:</strong> {{ device.reference|default:"N/A" }}<br>
+                        <strong>Status:</strong>
+                        <span class="badge {% if device.status == 'ACTIVE' %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ device.status }}
+                        </span>
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'device_detail' device.pk %}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-eye"></i> View
+                    </a>
+                    {% if user.groups.all.0.name == 'Admin' or user.groups.all.0.name == 'Manager' %}
+                    <a href="{% url 'device_update' device.pk %}" class="btn btn-outline-warning btn-sm">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <a href="{% url 'device_delete' device.pk %}" class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-trash"></i> Delete
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info" role="alert">
+                <i class="fas fa-info-circle"></i> No devices found.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Device pagination">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Previous</a>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <li class="page-item active">
+                <span class="page-link">{{ num }}</span>
+            </li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">{{ num }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

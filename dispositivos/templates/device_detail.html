@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle de Dispositivo - EcoEnergy{% endblock %}
+
+{% block content %}
+<h1>Detalle de Dispositivo: {{ device.name }}</h1>
+
+<div class="card mb-4">
+    <div class="card-header">Información del Dispositivo</div>
+    <div class="card-body">
+        <p><strong>Nombre:</strong> {{ device.name }}</p>
+        <p><strong>Categoría:</strong> {{ device.category.name }}</p>
+        <p><strong>Zona:</strong> {{ device.zone.name }}</p>
+        <p><strong>Referencia:</strong> {{ device.reference|default:"N/A" }}</p>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">Mediciones</div>
+    <div class="card-body">
+        {% if measurements %}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Valor</th>
+                        <th>Unidad</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in measurements %}
+                        <tr>
+                            <td>{{ m.fecha }}</td>
+                            <td>{{ m.value }}</td>
+                            <td>{{ m.unit }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No hay mediciones disponibles para este dispositivo.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Alertas</div>
+    <div class="card-body">
+        {% if alerts %}
+            <ul class="list-group">
+                {% for a in alerts %}
+                    <li class="list-group-item">
+                        <strong>{{ a.level }}</strong>: {{ a.message }}
+                        <small class="text-muted">({{ a.created_at }})</small>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No hay alertas disponibles para este dispositivo.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

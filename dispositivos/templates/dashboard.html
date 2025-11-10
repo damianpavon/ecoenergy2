@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - EcoEnergy{% endblock %}
+
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Zonas con Dispositivos</div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for zone in zones_with_devices %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ zone.name }}
+                            <span class="badge bg-primary rounded-pill">{{ zone.device_count }}</span>
+                        </li>
+                    {% empty %}
+                        <li class="list-group-item">No hay zonas disponibles.</li>
+                    {% endfor %}
+                </ul>
+                <a href="{% url 'device_list' %}" class="btn btn-link">Ver más</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Alertas de la Semana</div>
+            <div class="card-body">
+                <p>Grave: {{ alert_counts.grave }}</p>
+                <p>Alta: {{ alert_counts.alta }}</p>
+                <p>Media: {{ alert_counts.media }}</p>
+                <a href="#" class="btn btn-link">Ver todas las alertas</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Categorías</div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for category in categories %}
+                        <li class="list-group-item">{{ category.name }} - {{ category.description }}</li>
+                    {% empty %}
+                        <li class="list-group-item">No hay categorías disponibles.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Dispositivos</div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for device in devices %}
+                        <li class="list-group-item">{{ device.name }} ({{ device.category.name }}) - Zona: {{ device.zone.name }}</li>
+                    {% empty %}
+                        <li class="list-group-item">No hay dispositivos disponibles.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">Últimas 10 Mediciones</div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Dispositivo</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in latest_measurements %}
+                            <tr>
+                                <td>{{ m.date }}</td>
+                                <td>{{ m.device.name }}</td>
+                                <td>{{ m.value }} {{ m.unit }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3">No hay mediciones disponibles.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <a href="{% url 'measurement_list' %}" class="btn btn-link">Ver más</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
