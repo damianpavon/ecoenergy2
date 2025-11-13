@@ -24,92 +24,56 @@ from django.template.loader import get_template
 from django.contrib.auth.models import User
 from usuarios.models import UserProfile
 from .forms import DeviceForm, MeasurementForm, CategoryForm, ZoneForm, SensorForm, AlertForm
+from dispositivos.models import Zone, Device, Category
+from django.shortcuts import render
+from django.utils import timezone
+from datetime import timedelta
+from django.db.models import Count
+from dispositivos.models import Zone, Device, Category, Alert, Measurement
+
 
 
 @login_required
 def dashboard(request):
-    try:
-        organization = request.user.userprofile.organization
-        if not hasattr(organization, 'pk'):  # Check if it's a model instance
-            organization = None
-    except:
-        organization = None
+    # Intentar obtener la organización del usuario
+    organization = getattr(getattr(request.user, "userprofile", None), "organization", None)
 
-    if organization:
-        # Estadísticas generales
-        total_devices = Device.objects.filter(organization=organization).count()
-        total_measurements = Measurement.objects.filter(device__organization=organization).count()
-        total_alerts = Alert.objects.filter(device__organization=organization).count()
-        total_zones = Zone.objects.filter(organization=organization).count()
-
-        # Últimas 10 mediciones
-        latest_measurements = Measurement.objects.filter(
-            device__organization=organization
-        ).select_related('device', 'device__category', 'device__zone').order_by('-date')[:10]
-
-        # Zonas con cantidad de dispositivos
-        zones_with_devices = Zone.objects.filter(
-            organization=organization
-        ).annotate(device_count=Count('devices')).order_by('-device_count')
-
-        # Categorías
-        categories = Category.objects.filter(organization=organization).order_by('name')
-
-        # Dispositivos recientes (últimos 5)
-        devices = Device.objects.filter(organization=organization).select_related('category', 'zone').order_by('-created_at')[:5]
-
-        # Alertas de la semana, clasificadas
-        week_ago = timezone.now() - timedelta(days=7)
-        alerts = Alert.objects.filter(
-            device__organization=organization,
-            created_at__gte=week_ago
-        )
-        alert_counts = {
-            'grave': alerts.filter(level='GRAVE').count(),
-            'alta': alerts.filter(level='ALTA').count(),
-            'media': alerts.filter(level='MEDIA').count(),
-        }
-
-        # Alertas recientes para timeline
-        recent_alerts = Alert.objects.filter(
-            device__organization=organization
-        ).select_related('device').order_by('-created_at')[:5]
-
-        # Mediciones por día (últimos 7 días)
-        last_week = timezone.now() - timedelta(days=7)
-        measurements_by_day = Measurement.objects.filter(
-            device__organization=organization,
-            date__gte=last_week
-        ).extra(select={'day': 'date(date)'}).values('day').annotate(count=Count('id')).order_by('day')
-
+    if not organization:
+        zones = Zone.objects.all()
+        devices = Device.objects.all()
+        categories = Category.objects.all()
+        alerts = Alert.objects.all()
+        measurements = Measurement.objects.all()
     else:
-        total_devices = 0
-        total_measurements = 0
-        total_alerts = 0
-        total_zones = 0
-        latest_measurements = []
-        zones_with_devices = []
-        categories = []
-        devices = []
-        alert_counts = {'grave': 0, 'alta': 0, 'media': 0}
-        recent_alerts = []
-        measurements_by_day = []
+        zones = Zone.objects.filter(organization=organization)
+        devices = Device.objects.filter(organization=organization)
+        categories = Category.objects.filter(organization=organization)
+        alerts = Alert.objects.filter(device__organization=organization)
+        measurements = Measurement.objects.filter(device__organization=organization)
 
-    contexto = {
-        'total_devices': total_devices,
-        'total_measurements': total_measurements,
-        'total_alerts': total_alerts,
-        'total_zones': total_zones,
-        'latest_measurements': latest_measurements,
-        'zones_with_devices': zones_with_devices,
-        'categories': categories,
-        'devices': devices,
-        'alert_counts': alert_counts,
-        'recent_alerts': recent_alerts,
-        'measurements_by_day': measurements_by_day,
-        'now': timezone.now(),
+    # 🔹 Zonas con cantidad de dispositivos
+    zones_with_devices = zones.annotate(device_count=Count('devices')).order_by('-device_count')
+
+    # 🔹 Alertas de la última semana
+    week_ago = timezone.now() - timedelta(days=7)
+    alerts_week = alerts.filter(created_at__gte=week_ago)
+    alert_counts = {
+        'grave': alerts_week.filter(level='GRAVE').count(),
+        'alta': alerts_week.filter(level='ALTA').count(),
+        'media': alerts_week.filter(level='MEDIA').count(),
     }
-    return render(request, "dashboard.html", contexto)
+
+    # 🔹 Últimas 10 mediciones (con fecha, dispositivo, valor)
+    latest_measurements = measurements.select_related('device').order_by('-date')[:10]
+
+    context = {
+        'zones_with_devices': zones_with_devices,
+        'devices': devices,
+        'categories': categories,
+        'alert_counts': alert_counts,
+        'latest_measurements': latest_measurements,
+    }
+    return render(request, 'dashboard.html', context)
 
 @login_required
 def device_list(request):
@@ -240,7 +204,7 @@ def admin_required(view_func):
 def manager_required(view_func):
     return user_passes_test(lambda u: u.groups.filter(name='Admin').exists() or u.groups.filter(name='Manager').exists())(view_func)
 
-@login_required
+
 @admin_required
 def admin_dashboard(request):
     # Admin specific dashboard
@@ -256,6 +220,20 @@ def admin_dashboard(request):
         'total_alerts': total_alerts,
     }
     return render(request, "admin_dashboard.html", contexto)
+
+@login_required
+def alert_list(request):
+    organization = getattr(getattr(request.user, "userprofile", None), "organization", None)
+
+    if not organization:
+        alerts = Alert.objects.all().order_by('-created_at')
+    else:
+        alerts = Alert.objects.filter(device__organization=organization).order_by('-created_at')
+
+    return render(request, 'alerts.html', {'alerts': alerts})
+
+
+
 
 @login_required
 @manager_required
